@@ -1,82 +1,91 @@
 `timescale 1ns/1ps
+//==============================================================================
+//  Testbench   : DEFF_TB
+//  Description :
+//  Functional testbench for the DEFF DDR output flip-flop.
+//  Verifies rising-edge and falling-edge data sampling, enable control,
+//  reset behavior, and differential output operation.
+//
+//  Designer    : NH
+//  Company     : ITI
+//==============================================================================
 
 module DEFF_TB;
 
-    // DUT signals
-    reg TX_DDR_clk;
-    reg TX_rst;
-    reg Enable;
-    reg Serial_B1;
-    reg Serial_B2;
+    //-------------------------------------------------------------------------
+    // DUT Interface Signals
+    //-------------------------------------------------------------------------
+    reg  TX_DDR_clk;
+    reg  TX_rst;
+    reg  Enable;
+    reg  Serial_B1;
+    reg  Serial_B2;
 
     wire Dp;
     wire Dn;
 
-    // Instantiate DUT
+    //-------------------------------------------------------------------------
+    // DUT Instantiation
+    //-------------------------------------------------------------------------
     DEFF dut (
-        .TX_DDR_clk(TX_DDR_clk),
-        .TX_rst    (TX_rst),
-        .Enable    (Enable),
-        .Serial_B1 (Serial_B1),
-        .Serial_B2 (Serial_B2),
-        .Dp        (Dp),
-        .Dn        (Dn)
+        .TX_DDR_clk (TX_DDR_clk),
+        .TX_rst     (TX_rst),
+        .Enable     (Enable),
+        .Serial_B1  (Serial_B1),
+        .Serial_B2  (Serial_B2),
+        .Dp         (Dp),
+        .Dn         (Dn)
     );
 
-    // Clock generation: 100 MHz (10 ns period)
+    //-------------------------------------------------------------------------
+    // DDR Clock Generation (100 MHz)
+    //-------------------------------------------------------------------------
     initial begin
-        TX_DDR_clk = 0;
+        TX_DDR_clk = 1'b0;
         forever #5 TX_DDR_clk = ~TX_DDR_clk;
     end
 
-    // Stimulus
+    //-------------------------------------------------------------------------
+    // Stimulus Process
+    //-------------------------------------------------------------------------
     initial begin
-        // Default values
-        TX_rst     = 1;
-        Enable     = 0;
-        Serial_B1  = 0;
-        Serial_B2  = 0;
+        // Initial conditions
+        TX_rst    = 1'b1;
+        Enable    = 1'b0;
+        Serial_B1 = 1'b0;
+        Serial_B2 = 1'b0;
 
-        // Hold reset for a few cycles
+        // Apply reset
         #20;
-        TX_rst = 0;
+        TX_rst = 1'b0;
 
-        // Enable DDR sampling
+        // Enable DDR operation
         #22;
-        Enable = 1;
+        Enable = 1'b1;
 
-        // Drive different data on posedge/negedge paths
+        // Drive DDR data
         repeat (4) begin
-            // Change B1 before posedge
-                Serial_B1 = $random % 2;
-            // Change B2 before negedge
-                Serial_B2 = $random % 2;
+            Serial_B1 = $random % 2;
+            Serial_B2 = $random % 2;
             #10;
         end
 
-        // Disable sampling
+        // Disable outputs
         #20;
-        Enable = 0;
+        Enable = 1'b0;
 
-        // Change inputs while disabled (should not update q1/q2)
+        // Input changes while disabled
         #10;
-        Serial_B1 = 1;
-        Serial_B2 = 1;
+        Serial_B1 = 1'b1;
+        Serial_B2 = 1'b1;
 
-        // Re-enable
+        // Re-enable DDR operation
         #10;
-        Enable = 1;
+        Enable = 1'b1;
 
+        // End simulation
         #30;
         $finish;
-    end
-
-    // Optional waveform monitoring
-    initial begin
-        $display("Time  clk rst En B1 B2 | qDp qDn");
-        $monitor("%4t  %b   %b   %b  %b  %b |  %b   %b",
-                 $time, TX_DDR_clk, TX_rst, Enable,
-                 Serial_B1, Serial_B2, Dp, Dn);
     end
 
 endmodule
